@@ -1,8 +1,8 @@
 klawitter_simcodes
 ==============================
 [//]: # (Badges)
-[![GitHub Actions Build Status](https://github.com/REPLACE_WITH_OWNER_ACCOUNT/klawitter_simcodes_repo/workflows/CI/badge.svg)](https://github.com/REPLACE_WITH_OWNER_ACCOUNT/klawitter_simcodes_repo/actions?query=workflow%3ACI)
-[![codecov](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/klawitter_simcodes/branch/main/graph/badge.svg)](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/klawitter_simcodes/branch/main)
+[![GitHub Actions Build Status](https://github.com/SIMCODES-ISU/klawitter_simcodes_repo/workflows/CI/badge.svg)](https://github.com/SIMCODES-ISU/klawitter_simcodes_repo/actions?query=workflow%3ACI)
+[![codecov](https://codecov.io/gh/SIMCODES-ISU/klawitter_simcodes/branch/main/graph/badge.svg)](https://codecov.io/gh/SIMCODES-ISU/klawitter_simcodes/branch/main)
 
 
 machine learning and chemistry
