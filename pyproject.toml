@@ -12,7 +12,7 @@ readme = "README.md"
 authors = [
     { name = "Charlie Klawitter", email = "charlieklawitter@gmail.com" }
 ]
-license = "Not Open Source"
+license = "Apache-2.0"
 license-files = ["LICENSE"]
 # See https://pypi.org/classifiers/
 classifiers = [
