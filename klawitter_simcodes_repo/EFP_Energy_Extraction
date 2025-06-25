@@ -1,0 +1,78 @@
+import os
+import re
+import csv
+
+# Directory with .log files (current directory)
+log_dir = '.'
+
+# Regex pattern to extract energy values
+energy_pattern = re.compile(
+    r'^\s*([A-Z0-9 \-\.\(\)\+]+?)\s*=\s*(-?\d+\.\d+(?:[eE][-+]?\d+)?).*$',
+    re.IGNORECASE)
+
+desired_energies = {
+    'OVERLAP PEN. ENERGY',
+    'ELECTROSTATIC ENERGY',
+    'REPULSION ENERGY',
+    'POLARIZATION ENERGY',
+    'TOTAL DISPERSION ENERGY(E6+E7+E8)',
+    'CHARGE TRANSFER ENRGY',
+    'FINAL EFP ENERGY'
+}
+
+all_data = []
+
+# Loop through all .log files in the directory
+for filename in sorted(os.listdir(log_dir)):
+    if filename.endswith('.log'):
+        filepath = os.path.join(log_dir, filename)
+        with open(filepath, 'r') as file:
+            lines = file.readlines()
+
+        energies = {}
+        inside_block = False
+
+        for i, line in enumerate(lines):
+            if "FRAGMENT-FRAGMENT INTERACTION ENERGIES" in line:
+                inside_block = True
+                continue
+
+            if inside_block:
+                match = energy_pattern.match(line)
+                if match:
+                    label = match.group(1).strip()
+                    if label in desired_energies:
+                        value = float(match.group(2))
+                        energies[label] = value
+
+                if "FINAL EFP ENERGY" in line:
+                    # Finished reading relevant block, stop processing this file's lines
+                    break
+
+        # After parsing the block, convert energies from Hartree to kcal/mol
+        if energies:
+            energies['File'] = filename  # Add filename
+
+            HARTREE_TO_KCALMOL = 627.509
+            for key in energies:
+                if key != 'File' and isinstance(energies[key], float):
+                    energies[key] = energies[key] * HARTREE_TO_KCALMOL
+
+            all_data.append(energies)
+
+# Build header row for CSV
+all_keys = set()
+for entry in all_data:
+    all_keys.update(entry.keys())
+
+header = sorted([k for k in all_keys if k != 'File'])  # Sort energy labels
+header = ['File'] + header  # Put 'File' first
+
+# Write to CSV
+with open('efp_energies_summary.csv', 'w', newline='') as csvfile:
+    writer = csv.DictWriter(csvfile, fieldnames=header)
+    writer.writeheader()
+    for row in all_data:
+        writer.writerow(row)
+
+print("Energy values extracted and saved to efp_energies_summary.csv successfully")
