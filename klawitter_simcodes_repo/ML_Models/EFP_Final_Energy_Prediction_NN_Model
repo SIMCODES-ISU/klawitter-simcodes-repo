@@ -1,0 +1,118 @@
+import pandas as pd
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import torch.nn as nn
+import torch.nn.functional as F
+import random
+import numpy as np
+from tqdm import trange
+import matplotlib.pyplot as plt
+
+
+random.seed(42)
+np.random.seed(42)
+torch.manual_seed(42)
+
+# Loading in data
+df = pd.read_csv(r"C:\Users\Klaws\Documents\efp_energies_Week4.csv")
+
+# Choose Features and Target
+features = df[['CHARGE TRANSFER ENRGY', 'ELECTROSTATIC ENERGY', 'OVERLAP PEN. ENERGY',
+               'POLARIZATION ENERGY', 'REPULSION ENERGY', 'TOTAL DISPERSION ENERGY(E6+E7+E8)']]
+target = df['FINAL EFP ENERGY']
+
+X = features.values.astype('float32')
+y = target.values.astype('float32').reshape(-1, 1)
+
+# Standardize features
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+X_train = torch.from_numpy(X_train)
+X_test = torch.from_numpy(X_test)
+y_train = torch.from_numpy(y_train)
+y_test = torch.from_numpy(y_test)
+
+class NeuralNetRegression(nn.Module):
+    def __init__(self, input_dim):
+        super().__init__()
+        self.fc1 = nn.Linear(input_dim, 64)
+        self.bn1 = nn.BatchNorm1d(64)          
+        self.dropout1 = nn.Dropout(0.3)        
+        self.fc2 = nn.Linear(64, 32)
+        self.bn2 = nn.BatchNorm1d(32)
+        self.dropout2 = nn.Dropout(0.3)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = F.relu(self.bn1(self.fc1(x)))
+        x = self.dropout1(x)
+        x = F.relu(self.bn2(self.fc2(x)))
+        x = self.dropout2(x)
+        x = self.fc3(x)
+        return x
+
+model = NeuralNetRegression(X_train.shape[1])
+
+criterion = nn.L1Loss()
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+num_epochs = 50000
+for epoch in trange(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer.step()
+
+    if (epoch + 1) % 1000 == 0:
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+model.eval()
+with torch.no_grad():
+    preds = model(X_test)
+    mae = nn.L1Loss()(preds, y_test)
+    mse = nn.MSELoss()(preds, y_test)
+    print(f'Test MAE: {mae.item():.4f}, Test MSE: {mse.item():.4f}')
+
+
+plt.scatter(y_test.numpy(), preds.numpy(), alpha=0.6)
+plt.xlabel("True Energy")
+plt.ylabel("Predicted Energy")
+plt.title("EFP Energy Prediction")
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+plt.show()
+
+
+plt.figure(figsize=(8,6))
+plt.scatter(y_test.numpy(), preds.numpy(), alpha=0.6)
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+plt.xlabel("True Final EFP Energy")
+plt.ylabel("Predicted Final EFP Energy")
+plt.title("Predicted vs. True Final EFP Energies")
+plt.grid(True)
+plt.show()
+
+residuals = y_test.numpy().flatten() - preds.numpy().flatten()
+plt.figure(figsize=(8,6))
+plt.scatter(y_test.numpy(), residuals, alpha=0.6)
+plt.axhline(0, color='r', linestyle='--')
+plt.xlabel("True Final EFP Energy")
+plt.ylabel("Residuals (True - Predicted)")
+plt.title("Residuals vs. True Final EFP Energy")
+plt.grid(True)
+plt.show()
+
+abs_errors = np.abs(residuals)
+plt.figure(figsize=(8,6))
+plt.hist(abs_errors, bins=30, alpha=0.7)
+plt.xlabel("Absolute Error")
+plt.ylabel("Frequency")
+plt.title("Distribution of Absolute Prediction Errors")
+plt.show()
+
