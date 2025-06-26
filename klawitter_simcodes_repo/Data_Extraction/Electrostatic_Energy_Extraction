@@ -1,0 +1,53 @@
+import os
+import re
+import csv
+
+log_dir = '.'
+
+energy_pattern = re.compile(
+    r'^\s*([A-Z0-9 \-\.\(\)\+]+?)\s*=\s*(-?\d+\.\d+(?:[eE][-+]?\d+)?).*$',
+    re.IGNORECASE
+)
+
+target_energy = 'ELECTROSTATIC ENERGY'
+
+electrostatic_data = []
+
+for filename in sorted(os.listdir(log_dir)):
+    if filename.endswith('.log'):
+        filepath = os.path.join(log_dir, filename)
+        with open(filepath, 'r') as file:
+            lines = file.readlines()
+
+        found_value = None
+        inside_block = False
+
+        for line in lines:
+            if "FRAGMENT-FRAGMENT INTERACTION ENERGIES" in line:
+                inside_block = True
+                continue
+
+            if inside_block:
+                match = energy_pattern.match(line)
+                if match:
+                    label = match.group(1).strip()
+                    if label == target_energy:
+                        value = float(match.group(2))
+                        found_value = value
+                if "FINAL EFP ENERGY" in line:
+                    break
+
+        if found_value is not None:
+            kcal = found_value * 627.509
+            electrostatic_data.append({
+                'File': filename,
+                'Electrostatic Energy (kcal/mol)': kcal
+            })
+
+with open('electrostatic_energies.csv', 'w', newline='') as csvfile:
+    writer = csv.DictWriter(csvfile, fieldnames=['File', 'Electrostatic Energy (kcal/mol)'])
+    writer.writeheader()
+    for row in electrostatic_data:
+        writer.writerow(row)
+
+print("✅ Extracted ELECTROSTATIC ENERGY from all files and saved to 'electrostatic_energies.csv'")
