@@ -1,0 +1,40 @@
+import os
+import re
+import csv
+
+log_dir = '.'  # your folder
+
+sij_pattern = re.compile(
+    r'\|SIJ\| and RIJ\s+\d+\s+\d+\s+([-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)\s+([-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)'
+)
+
+sij_data = []
+
+for filename in sorted(os.listdir(log_dir)):
+    if filename.endswith('.log'):
+        filepath = os.path.join(log_dir, filename)
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as file:
+            for line_number, line in enumerate(file, 1):
+                if 'SIJ' in line and 'RIJ' in line:
+                    match = sij_pattern.search(line)
+                    if match:
+                        sij_val = float(match.group(1))
+                        rij_val = float(match.group(2))
+                        sij_data.append({
+                            'File': filename,
+                            '|SIJ|': sij_val,
+                            'RIJ': rij_val
+                        })
+                    else:
+                        print(f"[!] Line found but regex failed in {filename}:{line_number}")
+                        print(repr(line))
+
+if sij_data:
+    with open('sij_rij_values.csv', 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=['File', '|SIJ|', 'RIJ'])
+        writer.writeheader()
+        for row in sij_data:
+            writer.writerow(row)
+    print(f"✅ Extracted {len(sij_data)} SIJ/RIJ entries to 'sij_rij_values.csv'")
+else:
+    print("❌ No SIJ/RIJ values were extracted. Check log formatting.")
