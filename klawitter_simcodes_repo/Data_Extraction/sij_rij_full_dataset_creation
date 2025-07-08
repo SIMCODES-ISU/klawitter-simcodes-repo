@@ -1,0 +1,22 @@
+import pandas as pd
+
+df = pd.read_excel("sij_rij_coul_full_dataset.xlsx")
+
+grouped = df.groupby("File")
+
+X = []  # features: coul, rij, sij
+y = []  # target: ground truth energy
+
+for file_name, group in grouped:
+    coul_energy = float(group["Coul "].iloc[0])
+    rij_vector = group["RIJ"].tolist()
+    sij_vector = group["SIJ"].tolist()
+    ground_truth = float(group["SAPT_GT"].iloc[0])  
+
+    # Append features and target separately
+    X.append([coul_energy, rij_vector, sij_vector])
+    y.append(ground_truth)
+
+print(f"Number of samples: {len(X)}")
+print(f"Example input sample: {X[0]}")
+print(f"Example target sample: {y[0]}")
